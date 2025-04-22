@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Health Assistant</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+      }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1e1e2f;
+      color: #eee;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      position: fixed; 
+      top: 0; 
+      left: -280px;
+      width: 280px; 
+      height: 100%;
+      background-color: #2d2d40; 
+      border-right: 1px solid #444;
+      padding: 1rem; 
+      transition: left 0.3s ease;
+      display: flex; 
+      flex-direction: column; 
+      overflow-y: auto;
+    }
+
+    #sidebar.open {
+       left: 0;
+       }
+    
+       #sidebar h2 { 
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+
+    .history-item {
+      padding:0.5rem 1rem; 
+      margin-bottom:0.5rem;
+      background:#3a3a50; 
+      border-radius:8px;
+      cursor:pointer;
+       white-space:nowrap;
+      overflow:hidden; 
+      text-overflow:ellipsis;
+      color:#ddd;
+    }
+
+    .history-item:hover { 
+      background:#50506b;
+     }
+
+    /* Main area */
+    #main {
+      flex:1; 
+      display:flex;
+      flex-direction:column;
+      margin-left:0; 
+      transition:margin-left 0.3s ease;
+      width:100%;
+    }
+
+    #main.shifted {
+      margin-left:280px;
+      width:calc(100% - 280px);
+    }
+
+    header {
+      background:#2d2d40; 
+      padding:1rem;
+      display:flex;
+      align-items:center; 
+      justify-content:space-between;
+      border-bottom:1px solid #444;
+    }
+
+    header h1 {
+       margin:0;
+       font-size:1.5rem; 
+       color:#eee; 
+      }
+
+    #toggle-history {
+      background:none; 
+      border:none; 
+      color:#eee;
+      font-size:1.5rem;
+      cursor:pointer;
+    }
+
+    #chat-container {
+      flex:1; 
+      overflow-y:auto; 
+      padding:1rem;
+      display:flex; 
+      flex-direction:column;
+      gap:1rem;
+    }
+
+    #quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0 1rem 1rem;
+}
+
+.chip {
+  background: #3a3a50;
+  color: #eee;
+  padding: 0.5rem 1rem;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  transition: background 0.2s ease;
+}
+
+.chip:hover {
+  background: #50506b;
+}
+
+    .message {
+      max-width:80%; 
+      padding:0.75rem 1rem; 
+      border-radius:12px;
+      line-height:1.4; 
+      display:flex; 
+      align-items:flex-start;
+      gap:0.75rem;
+    }
+
+    .bot {
+       background:#2a2a3d; 
+       align-self:flex-start; 
+      }
+
+    .user {
+       background:#0078d4; 
+       align-self:flex-end; 
+       color:#fff; }
+    
+    .avatar {
+      width:32px;
+      height:32px; 
+      border-radius:50%;
+      background:#444; 
+      display:flex; 
+      align-items:center;
+      justify-content:center; 
+      font-size:1.1rem;
+    }
+
+    #input-container {
+      display:flex; 
+      padding:1rem;
+      background:#2d2d40; 
+      border-top:1px solid #444;
+    }
+
+    #message-input {
+      flex:1; 
+      padding:0.75rem 1rem; 
+      border:none;
+      border-radius:8px; 
+      font-size:1rem;
+      background:#444; 
+      color:#eee;
+    }
+
+    #send-btn {
+      padding:0.75rem 1rem; 
+      margin-left:0.5rem;
+      border:none; 
+      border-radius:8px;
+      background:#0078d4; 
+      color:white; 
+      font-size:1rem;
+      cursor:pointer;
+    }
+
+    #send-btn:hover { 
+      background:#005fa3; 
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { 
+      width:6px; 
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background:#555; 
+      border-radius:6px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <aside id="sidebar">
+    <h2>📂 History</h2>
+    <div id="history-list"></div>
+  </aside>
+
+  <div id="main">
+    <header>
+      <h1>🤖 AI Health Assistant</h1>
+      <button id="toggle-history">☰</button>
+    </header>
+    
+    <main id="chat-container"></main>
+    <div id="quick-replies"></div>
+    
+    <form id="input-container">
+      <button id="mic-btn" title="Speak" style="background:none; border:none; font-size:1.4rem; color:#eee; margin-left:0.5rem;">🎤</button>
+      <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off"/>
+      <button type="submit" id="send-btn">Send</button>
+      <button id="copy-btn" title="Copy Chat" style="background:none; border:none; font-size:1.4rem; color:#eee; margin-left:0.5rem;">📋</button>
+      <button id="voice-toggle-btn" title="Toggle Voice" style="background:none; border:none; font-size:1.4rem; color:#eee; margin-left:0.5rem;">🔈</button>
+
+    </form>
+  </div>
+   
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const chatContainer  = document.getElementById("chat-container");
+    const inputForm      = document.getElementById("input-container");
+    const messageInput   = document.getElementById("message-input");
+    const historyList    = document.getElementById("history-list");
+    const sidebar        = document.getElementById("sidebar");
+    const mainArea       = document.getElementById("main");
+    const toggleBtn      = document.getElementById("toggle-history");
+    const micBtn         = document.getElementById("mic-btn");
+    const copyBtn        = document.getElementById("copy-btn");
+
+    let currentChat = [];
+    let allChats    = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+
+    function appendMessage(text, role) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", role);
+
+      const avatar = document.createElement("div");
+      avatar.classList.add("avatar");
+      avatar.textContent = role === "user" ? "🧑" : "🤖";
+
+      const textSpan = document.createElement("span");
+      textSpan.textContent = text;
+
+      msgDiv.appendChild(avatar);
+      msgDiv.appendChild(textSpan);
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function appendChart(labels, dataPoints, chartLabel, chartType='bar') {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", "bot");
+
+      const avatar = document.createElement("div");
+      avatar.classList.add("avatar");
+      avatar.textContent = "🤖";
+
+      const chartWrapper = document.createElement("div");
+      chartWrapper.style.width = "100%";
+      chartWrapper.style.maxWidth = "400px";
+      chartWrapper.style.marginTop = "10px";
+
+      const canvas = document.createElement("canvas");
+      chartWrapper.appendChild(canvas);
+
+      msgDiv.appendChild(avatar);
+      msgDiv.appendChild(chartWrapper);
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      new Chart(canvas.getContext("2d"), {
+        type: chartType, // 'bar' or 'line'
+        data: {
+          labels: labels,
+          datasets: [{
+            label: chartLabel,
+            data: dataPoints,
+            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(tooltipItem) {
+                  return `${chartLabel}: ${tooltipItem.raw}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function saveToHistory() {
+      if (currentChat.length > 0) {
+        const title = currentChat[0].text.slice(0,30) + "...";
+        allChats.push({ title, messages: currentChat });
+        localStorage.setItem("chatHistory", JSON.stringify(allChats));
+        renderHistory();
+        currentChat = [];
+      }
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = "";
+      allChats.forEach((chat, idx) => {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.textContent = chat.title;
+        item.onclick = () => loadChat(idx);
+        historyList.appendChild(item);
+      });
+    }
+
+    function loadChat(idx) {
+      chatContainer.innerHTML = "";
+      currentChat = [...allChats[idx].messages];
+      currentChat.forEach(msg => appendMessage(msg.text, msg.role));
+    }
+
+    toggleBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+      mainArea.classList.toggle("shifted");
+    });
+
+
+//     function speak(text) {
+//   if (!window.speechSynthesis) {
+//     console.error("Speech Synthesis not supported in this browser.");
+//     return;
+//   }
+
+//   const speakNow = () => {
+//     const utterance = new SpeechSynthesisUtterance(text);
+//     utterance.lang = 'en-US';
+//     utterance.pitch = 1;
+//     utterance.rate = 1;
+
+//     const voices = speechSynthesis.getVoices();
+//     if (voices.length > 0) {
+//       utterance.voice = voices.find(v => v.lang === 'en-US') || voices[0];
+//     }
+
+//     speechSynthesis.speak(utterance);
+//   };
+
+//   // Delay if voices aren't loaded yet
+//   if (speechSynthesis.getVoices().length === 0) {
+//     speechSynthesis.onvoiceschanged = speakNow;
+//   } else {
+//     speakNow();
+//   }
+// }
+function speak(text) {
+  if (!window.speechSynthesis) {
+    console.error("Speech Synthesis not supported in this browser.");
+    return;
+  }
+
+  const speakNow = () => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.pitch = 1;
+    utterance.rate = 1;
+
+    const voices = speechSynthesis.getVoices();
+    
+
+    const googleVoice = voices.find(v => v.name === "Google US English");
+
+    if (googleVoice) {
+      utterance.voice = googleVoice;
+    } else {
+      // Fallback to any en-US voice
+      utterance.voice = voices.find(v => v.lang === "en-US") || voices[0];
+    }
+
+    speechSynthesis.speak(utterance);
+  };
+
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.onvoiceschanged = speakNow;
+  } else {
+    speakNow();
+  }
+}
+
+
+
+inputForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const userText = messageInput.value.trim();
+  if (!userText) return;
+
+  appendMessage(userText, "user");
+  currentChat.push({ role: "user", text: userText });
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userText }),
+    });
+
+    const data = await res.json(); 
+
+    appendMessage(data.reply, "bot");
+    currentChat.push({ role: "bot", text: data.reply });
+
+    console.log("Bot reply:", data.reply);
+    speak(data.reply); 
+
+    messageInput.value = "";
+
+   
+    const match = userText.toLowerCase().match(/symptom timeline for (.+)/);
+    if (match) {
+      const disease = match[1];
+      const labels = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"];
+      const points = [1, 2, 3, 2, 1];
+      appendChart(labels, points, `${disease} Severity Over Time`, 'bar');
+    }
+
+    if (currentChat.length >= 4) saveToHistory();
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+    appendMessage("❌ Error: Could not get bot response.", "bot");
+  }
+});
+
+
+
+    renderHistory();
+
+    const quickSuggestions = [
+  "What is Diabetes?",
+  "Show symptom timeline for asthma",
+  "How to prevent high blood pressure?",
+  "Is headache a symptom of flu?"
+];
+
+function renderQuickReplies() {
+  const qrContainer = document.getElementById("quick-replies");
+  qrContainer.innerHTML = "";
+  quickSuggestions.forEach(q => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = q;
+    chip.onclick = () => {
+      messageInput.value = q;
+      inputForm.requestSubmit(); 
+    };
+    qrContainer.appendChild(chip);
+  });
+}
+
+renderQuickReplies();
+
+  // SPEECH‑TO‑TEXT (Web Speech API)
+  micBtn.onclick = () => {
+      if (!('webkitSpeechRecognition' in window)) return alert("Speech API unsupported");
+      const recog = new webkitSpeechRecognition();
+      recog.onresult = e=> messageInput.value=e.results[0][0].transcript;
+      recog.start();
+    };
+
+     // COPY CHAT TO CLIPBOARD
+     copyBtn.onclick = () => {
+      const text = currentChat.map(m=>`${m.role}: ${m.text}`).join('\n');
+      navigator.clipboard.writeText(text).then(_=>alert("Chat copied!"));
+    };
+    window.addEventListener("beforeunload", () => {
+  saveToHistory();
+});
+
+
+  </script>
+</body>
+</html>
